@@ -334,6 +334,7 @@ class YoutubeDL(object):
     _download_retcode = None
     _num_downloads = None
     _screen_file = None
+    _stopAtFirst = None
 
     def __init__(self, params=None, auto_init=True):
         """Create a FileDownloader object with the given options."""
@@ -346,6 +347,7 @@ class YoutubeDL(object):
         self._download_retcode = 0
         self._num_downloads = 0
         self._screen_file = [sys.stdout, sys.stderr][params.get('logtostderr', False)]
+        self._stopAtFirst = False
         self._err_file = sys.stderr
         self.params = {
             # Default parameters
@@ -733,7 +735,10 @@ class YoutubeDL(object):
         date = info_dict.get('upload_date')
         if date is not None:
             dateRange = self.params.get('daterange', DateRange())
+            stopAtFirst = self.params.get('stopatfirst')
             if date not in dateRange:
+                if stopAtFirst:
+                    self._stopAtFirst = True
                 return '%s upload date is not in range %s' % (date_from_str(date).isoformat(), dateRange)
         view_count = info_dict.get('view_count')
         if view_count is not None:
@@ -972,7 +977,12 @@ class YoutubeDL(object):
 
             x_forwarded_for = ie_result.get('__x_forwarded_for_ip')
 
+            self._stopAtFirst = False
+
             for i, entry in enumerate(entries, 1):
+                if self._stopAtFirst:
+                    self.to_screen('[download] Stopped downloading because video was not in daterange')
+                    break
                 self.to_screen('[download] Downloading video %s of %s' % (i, n_entries))
                 # This __x_forwarded_for_ip thing is a bit ugly but requires
                 # minimal changes
@@ -1402,6 +1412,11 @@ class YoutubeDL(object):
 
     def process_video_result(self, info_dict, download=True):
         assert info_dict.get('_type', 'video') == 'video'
+
+        reason = self._match_entry(info_dict, incomplete=False)
+        if reason is not None:
+            self.to_screen('[download] ' + reason)
+            return
 
         if 'id' not in info_dict:
             raise ExtractorError('Missing "id" field in extractor result')

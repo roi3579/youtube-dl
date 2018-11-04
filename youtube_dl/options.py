@@ -272,6 +272,10 @@ def parseOpts(overrideArguments=None):
         dest='matchtitle', metavar='REGEX',
         help='Download only matching titles (regex or caseless sub-string)')
     selection.add_option(
+        '--stopatfirst',
+        action='store_true', dest='stopatfirst', default=False,
+        help='Stop downloading of further videos when the first video is not in daterange')
+    selection.add_option(
         '--reject-title',
         dest='rejecttitle', metavar='REGEX',
         help='Skip download for matching titles (regex or caseless sub-string)')
